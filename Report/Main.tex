@@ -1,1 +1,285 @@
-\documentclass[french]{assignment}
+\documentclass[french]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
+\usepackage{geometry}
+\geometry{margin=1in}
+
+% Code listing configuration
+\lstdefinestyle{python}{
+    language=Python,
+    basicstyle=\ttfamily,   % Smaller font size
+    keywordstyle=\color{blue},   % Color for keywords
+    stringstyle=\color{red},     % Color for strings
+    commentstyle=\color{green},  % Color for comments
+    % backgroundcolor=\color{lightgray}, % Background color for the code block
+    numbers=left,               % Line numbers on the left
+    numberstyle=\tiny\color{gray}, % Style for line numbers
+    stepnumber=1,               % Number every line
+    numbersep=5pt,              % Distance between line numbers and code
+    breaklines=true,            % Automatic line breaking
+    frame=single,               % Adds a frame around the code block
+    captionpos=b,               % Caption at the bottom
+    showstringspaces=false,     % Don't show spaces in strings
+    upquote=true                % Use straight quotes
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+
+\fancyhead[L]{\textbf{Blockchain en Python}} 
+\fancyhead[R]{\textbf{Cryptographie appliquée et Blockchain}}  
+% \fancyhead[R]{\today}  
+
+% \fancyfoot[L]{Author Name}        
+\fancyfoot[C]{\thepage}      
+% \fancyfoot[R]{Université Hassan II} 
+
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    % Logo
+    \includegraphics[width=0.6\textwidth]{../../../../assets/logoEnset.png}\par
+    \vspace*{1cm}
+
+    % Titre principal
+    {\Huge\bfseries Implémentation d'une Blockchain en Python \par}
+    \vspace{0.5cm}
+    {\LARGE\itshape Cryptographie appliquée et Blockchain \par}
+    \vspace{2cm}
+
+    % Sous-titre ou complément d'information
+    {\Large\textbf{Master 1}\par}
+    \vspace{0.5cm}
+    {\large Systèmes Distribués et Intelligence Artificielle \par}
+    \vspace{2cm}
+
+    % Informations supplémentaires
+    \vfill
+    \begin{flushright}
+        {\large Préparé par : \textbf{Yahya Ghallali}\par}
+        {\large Institution : \textbf{ENSET}\par}
+        {\normalsize \today\par}
+    \end{flushright}
+
+    % Footer ou signature
+    % \vspace{1cm}
+    % \hrule
+    % \vspace{0.3cm}
+    % {\small Un engagement envers l'excellence et le développement humain\par}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\section{Introduction}
+Ce rapport détaille l'implémentation d'une blockchain en Python, en expliquant les différents composants et leurs fonctionnalités. La blockchain implémentée comprend un système complet de gestion de transactions, de minage de blocs, et de validation de la chaîne.
+
+\section{Architecture du Système}
+\subsection{Structure du Projet}
+Le projet est organisé en deux dossiers principaux :
+\begin{itemize}
+    \item \textbf{Models/} : Contient les classes principales de la blockchain
+    \begin{itemize}
+        \item \texttt{blockchain.py} : Gestion de la chaîne de blocs
+        \item \texttt{block.py} : Structure des blocs
+        \item \texttt{transaction.py} : Gestion des transactions
+        \item \texttt{transaction\_pool.py} : Pool de transactions en attente
+    \end{itemize}
+    \item \textbf{Utils/} : Contient les utilitaires et fonctions d'aide
+    \begin{itemize}
+        \item \texttt{crypto\_utils.py} : Fonctions cryptographiques
+        \item \texttt{utils.py} : Utilitaires généraux
+        \item \texttt{crypto\_constants.py} : Constantes cryptographiques
+    \end{itemize}
+\end{itemize}
+
+\section{Composants Principaux}
+
+\subsection{Blockchain}
+La classe principale qui gère la chaîne de blocs. Elle est responsable de :
+\begin{itemize}
+    \item La création du bloc genesis
+    \item L'ajout de nouveaux blocs
+    \item La validation de l'intégrité de la chaîne
+    \item L'ajustement de la difficulté de minage
+\end{itemize}
+
+\subsubsection{Initialisation et Bloc Genesis}
+\begin{lstlisting}[style=python, caption=Initialisation de la Blockchain]
+def __init__(self, difficulty: int = 2):
+    self.chain: List[Block] = []
+    self.difficulty = difficulty
+    self._create_genesis_block()
+
+def _create_genesis_block(self):
+    genesis_transaction = Transaction(
+        sender="network",
+        recipient="genesis-address",
+        amount=50,
+        timestamp=get_timestamp(),
+    )
+    genesis_block = Block(
+        index=0,
+        previous_hash="0" * CryptoConstants.HASH_LEN,
+        transactions=[genesis_transaction],
+        timestamp=get_timestamp(),
+    )
+    self.chain.append(genesis_block)
+\end{lstlisting}
+
+\subsubsection{Validation de la Chaîne}
+\begin{lstlisting}[style=python, caption=Validation de la Blockchain]
+def is_valid_chain(self) -> bool:
+    for i in range(1, len(self.chain)):
+        current_block = self.chain[i]
+        previous_block = self.chain[i - 1]
+
+        if current_block.previous_hash != previous_block.hash:
+            return False
+
+        if current_block.hash != current_block._calculate_hash():
+            return False
+
+        if not current_block.has_valid_transactions():
+            return False
+
+    return True
+\end{lstlisting}
+
+\subsection{Block}
+La structure de base d'un bloc dans la chaîne. Chaque bloc contient :
+\begin{itemize}
+    \item Un index unique
+    \item Un horodatage
+    \item Le hash du bloc précédent
+    \item Une liste de transactions
+    \item Un nonce pour le minage
+    \item Son propre hash
+\end{itemize}
+
+\subsubsection{Calcul du Hash}
+\begin{lstlisting}[style=python, caption=Calcul du Hash d'un Bloc]
+def _calculate_hash(self) -> str:
+    block_header = {
+        "index": self.index,
+        "timestamp": self.timestamp,
+        "previous_hash": self.previous_hash,
+        "transactions": [tx.transaction_hash for tx in self.transactions],
+        "nonce": self.nonce,
+    }
+    return generate_hash(block_header)
+\end{lstlisting}
+
+\subsubsection{Mining du Bloc}
+\begin{lstlisting}[style=python, caption=Mining d'un Bloc]
+def mine_block(self, difficulty: int) -> None:
+    target = "0" * difficulty
+    while self.hash[:difficulty] != target:
+        self.nonce += 1
+        self.hash = self._calculate_hash()
+\end{lstlisting}
+
+\subsection{Transaction}
+La représentation d'une transaction dans le système. Chaque transaction contient :
+\begin{itemize}
+    \item L'expéditeur (clé publique)
+    \item Le destinataire (clé publique)
+    \item Le montant
+    \item Un horodatage
+    \item Une signature numérique
+    \item Un hash de transaction
+\end{itemize}
+
+\subsubsection{Validation des Transactions}
+\begin{lstlisting}[style=python, caption=Validation d'une Transaction]
+def is_valid(self) -> bool:
+    if self.sender == "network":
+        return True
+    return verify_signature(self.transaction_hash, self.signature, self.sender)
+\end{lstlisting}
+
+\subsection{Transaction Pool}
+La gestion du pool de transactions en attente. Cette classe :
+\begin{itemize}
+    \item Stocke les transactions en attente d'être incluses dans un bloc
+    \item Vérifie la validité des transactions
+    \item Gère l'ajout et la suppression des transactions
+    % \item Maintient l'ordre des transactions par horodatage
+\end{itemize}
+
+\subsection{Blockchain Application}
+L'application principale qui utilise la blockchain. Elle fournit :
+\begin{itemize}
+    \item Une interface pour créer des transactions
+    \item La gestion du minage de blocs
+    \item La validation de la chaîne
+    \item La persistance des données
+\end{itemize}
+
+\section{Cryptographie et Sécurité}
+
+\subsection{Fonctions Cryptographiques}
+Le système utilise plusieurs mécanismes cryptographiques :
+
+\subsubsection{Génération de Hash}
+\begin{lstlisting}[style=python, caption=Génération de Hash]
+def generate_hash(data: Any) -> str:
+    if not isinstance(data, str):
+        data = dump_data(data)
+    encoded_data = data.encode()
+    hash_result = hashlib.sha512(encoded_data).hexdigest()
+    return hash_result
+\end{lstlisting}
+
+\subsubsection{Signatures Numériques}
+Le système utilise ECDSA (Elliptic Curve Digital Signature Algorithm) pour les signatures :
+\begin{lstlisting}[style=python, caption=Génération de Signature]
+def generate_signature(data: Any, private_key_str: str) -> str:
+    private_key_str = base64.b64decode(private_key_str)
+    private_key = ecdsa.SigningKey.from_string(private_key_str, curve=ecdsa.SECP256k1)
+    signature = private_key.sign(data.encode())
+    return base64.b64encode(signature).decode()
+\end{lstlisting}
+
+\subsection{Mécanismes de Sécurité}
+La blockchain implémentée inclut plusieurs mécanismes de sécurité :
+\begin{itemize}
+    \item \textbf{Preuve de travail (Proof of Work)} : Utilise un système de difficulté ajustable pour le minage
+    \item \textbf{Signatures numériques} : Utilise ECDSA avec la courbe SECP256k1
+    \item \textbf{Validation de l'intégrité} : Vérifie les liens entre les blocs et la validité des transactions
+    \item \textbf{Protection contre la double dépense} : Validation des transactions avant inclusion dans un bloc
+    \item \textbf{Hachage sécurisé} : Utilise SHA-512 pour la génération des hashs
+\end{itemize}
+
+\section{Performance et Optimisations}
+\subsection{Optimisations de Performance}
+Les optimisations de performance incluent :
+\begin{itemize}
+    \item \textbf{Gestion efficace de la mémoire} : Utilisation de structures de données optimisées
+    \item \textbf{Validation optimisée} : Vérification rapide des transactions et des blocs
+    \item \textbf{Pool de transactions} : Gestion efficace des transactions en attente
+    \item \textbf{Logging intelligent} : Système de logging configurable pour le débogage
+\end{itemize}
+
+% \subsection{Extensibilité}
+% Le système est conçu pour être extensible :
+% \begin{itemize}
+%     \item Architecture modulaire
+%     \item Interfaces clairement définies
+%     \item Support pour différents types de transactions
+%     \item Possibilité d'ajouter de nouveaux mécanismes de consensus
+% \end{itemize}
+
+\section{Conclusion}
+Ce projet implémente une blockchain complète avec toutes les fonctionnalités essentielles, incluant la création de blocs, la gestion des transactions, et la validation de la chaîne.
+
+\end{document}
