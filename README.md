@@ -31,7 +31,7 @@ ReposiortyFolder/
 - Chain integrity verification
 
 ## Documentation
-For detailed documentation and implementation details, see the [Full Report](../Report/Main.pdf).
+For detailed documentation and implementation details, see the [Full Report](./Report/Main.pdf).
 
 ## Requirements
 - Python 3.8+
