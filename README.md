@@ -1,7 +1,12 @@
 # Blockchain Implementation in Python
 
+
+
 ## Video Demonstration
 https://github.com/user-attachments/assets/ea167cdd-a792-4dd8-83b9-7ad6122a7f74
+
+## Documentation
+For detailed documentation and implementation details, see the [Full Report](./Report/Main.pdf).
 
 
 A simple blockchain implementation in Python that demonstrates core blockchain concepts including:
@@ -33,9 +38,6 @@ ReposiortyFolder/
 - SHA-512 hashing
 - Transaction validation
 - Chain integrity verification
-
-## Documentation
-For detailed documentation and implementation details, see the [Full Report](./Report/Main.pdf).
 
 ## Requirements
 - Python 3.8+
